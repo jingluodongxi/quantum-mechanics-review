@@ -114,6 +114,11 @@ textarea { min-height: 95px; resize: vertical; }
 .status.retry { color: #95502e; }
 .source { color: var(--muted); font-size: .86rem !important; }
 .source ul { padding-left: 1.25rem; margin: .3rem 0 0; }
+.original-question { margin-bottom: 1rem; }
+.original-question p { margin-bottom: .4rem; }
+.original-formula { text-align: center; }
+.source-note { border-left: 3px solid #639ac5; background: #f0f4fb; padding: .65rem .85rem; margin-top: .85rem; border-radius: 6px; }
+.reader .source-note p { color: var(--muted); font-size: .92rem; margin-top: .2rem; }
 .step { margin: .8rem 0 .2rem; }
 .step[hidden] { display: none; }
 .step h3 { color: var(--blue); }

@@ -5,22 +5,6 @@ const key = "quantum-review-23:v1";
 const chapters = { "2": "波函数与薛定谔方程", "3": "量子力学中的力学量" };
 const lessons = parse(lessonText + "\n" + observableText).map(({ header: [id, title, subtitle], fields }) => ({ id, title, subtitle, fields }));
 const questions = parse(homeworkText + "\n" + examText).map(({ header: [id, section, source, title], fields }) => ({ id, section, source, title, fields }));
-const aliases = [
-  ["e22a-11", "e20-11", "22 级期中回忆 · 版本 A", "一（1）"],
-  ["e22a-12", "e20-12", "22 级期中回忆 · 版本 A", "一（2）"],
-  ["e22a-2", "h2c10", "22 级期中回忆 · 版本 A", "二"],
-  ["e22a-32", "e20-32", "22 级期中回忆 · 版本 A", "三（2）"],
-  ["e22a-6", "e21-24", "22 级期中回忆 · 版本 A", "六"],
-  ["e22a-8", "e20-6", "22 级期中回忆 · 版本 A", "八"],
-  ["e22b-11", "h2b2", "22 级试题回忆 · 版本 B", "一（1）"],
-  ["e22b-12", "e21-11", "22 级试题回忆 · 版本 B", "一（2）"],
-  ["e22b-21", "h3-5", "22 级试题回忆 · 版本 B", "二（1）"]
-];
-for (const [id, originalId, source, number] of aliases) {
-  const original = questions.find(item => item.id === originalId);
-  questions.push({ ...original, id, source, title: number + " · " + original.title.split(" · ")[1] });
-}
-questions.sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true }));
 const lessonMap = new Map(lessons.map(item => [item.id, item]));
 const questionMap = new Map(questions.map(item => [item.id, item]));
 const filters = { query: "", chapter: "", source: "" };
@@ -44,18 +28,10 @@ function parse(text) {
   });
 }
 
-function citations(id) {
-  if (id.startsWith("h2")) {
-    const sources = ["《第二章作业.docx》", "《量子力学作业.zip》内《第二章作业.docx》"];
-    if (["h2a1", "h2a2"].includes(id)) sources.push("旧聊天《量子力学》的第一次作业记录");
-    return sources;
-  }
-  if (/^h3-(10|11|12|13)$/.test(id)) return ["旧聊天《量子力学》中的教材题图记录与题干整理"];
-  if (id.startsWith("h3")) {
-    const sources = ["《第3章作业.docx》", "《量子力学作业.zip》内《作业3.docx》"];
-    if (/^h3-(2|3|4|5|6|8|9)$/.test(id)) sources.push("旧聊天《量子力学》或《量子力学期中复习》的对应题号");
-    return sources;
-  }
+function citations({ id, source }) {
+  if (source.startsWith("教材")) return [source + "习题", ...(id === "h2book5" ? ["教材第二章式（2.6.14）"] : [])];
+  if (source === "云课堂 · 第一次作业") return ["《云课堂第一次作业.jpg》"];
+  if (source === "云课堂 · 第二次作业") return ["《云课堂第二次作业.jpg》"];
   if (id.startsWith("e20")) return ["《2020应物量子力学期中卷（已做）.docx》"];
   if (id.startsWith("e21")) return ["《量子力学21级回忆.docx》"];
   if (id.startsWith("e22a")) return ["《22级量子力学期中考试回忆（不完整，可能有错误，仅供参考）.docx》"];
@@ -159,9 +135,11 @@ function questionLinks(items, empty = "没有符合条件的题目。") {
 
 function home() {
   const passed = lessons.filter(item => state.lessons[item.id]?.passed).length;
+  const [previousPage, previousId] = state.last.split("/");
+  const canResume = previousPage === "lesson" ? lessonMap.has(previousId) : questionMap.has(previousId);
   return '<section class="hero"><div><span class="tag">第二、三章复习</span><h1>量子力学</h1>' +
     '<p>从看懂波函数开始，一步步学会推公式、做作业和写期中题。</p><div class="actions">' +
-    button(state.last || "lesson/2.1", state.last ? "继续上次学习" : "从第一节开始", "primary") +
+    button(canResume ? state.last : "lesson/2.1", canResume ? "继续上次学习" : "从第一节开始", "primary") +
     button("bank", "浏览作业与期中", "secondary") + '</div></div><div class="formula-board">' +
     format("$i\\hbar\\frac{\\partial\\Psi}{\\partial t}=\\hat H\\Psi$") +
     "<p>波函数如何随时间变化</p></div></section>" +
@@ -223,7 +201,7 @@ function bank() {
     '</select></label><label>题目来源<select id="source"><option value="">全部来源</option>' + sources.map(source =>
       '<option value="' + escape(source) + '"' + (filters.source === source ? " selected" : "") + ">" + escape(source) + "</option>"
     ).join("") + '</select></label></div><p class="muted" id="bank-count" aria-live="polite"></p><div id="bank-results"></div>' +
-    '<details class="reveal"><summary>来源核对说明</summary><p>原题号按各份材料保留。第三章教材题和算符题组各用自己的编号。回忆卷可能与原卷有出入，缺失或含混条件在题页注明。往年文件夹内 2020 年 5 月光电 A 卷未标为期中，本题库采用应物期中卷及回忆卷中涉及两章的题。</p></details>';
+    '<details class="reveal"><summary>来源核对说明</summary><p>教材按勾选照片收录，云课堂按两张作业截图收录，试卷按应物期中卷和三份往年回忆材料收录。原题区保留各份材料的文字、符号和小问，公式用 LaTeX 排版。回忆版以回忆材料为准。补充条件和材料差异见题页的题源注记。</p></details>';
 }
 
 const steps = [["切入", "切入提示"], ["列式", "列式提示"], ["步骤", "详细解析"], ["考场", "考场写法"]];
@@ -231,10 +209,17 @@ const steps = [["切入", "切入提示"], ["列式", "列式提示"], ["步骤"
 function questionPage(item) {
   const { id, section, title, source, fields } = item;
   const entry = state.questions[id] ?? {};
+  const original = fields["题干"].split("⏎").map(line => {
+    const className = line.startsWith("$$") ? ' class="original-formula"' : "";
+    return "<p" + className + ">" + format(line) + "</p>";
+  }).join("");
+  const sourceNote = fields["注记"] ?
+    '<aside class="source-note"><strong>题源注记</strong><p>' + format(fields["注记"]) + "</p></aside>" : "";
   return header(title, source, '<p class="breadcrumb"><a href="#bank">作业与期中</a></p>') +
-    '<div class="reader"><section class="card"><h2>题目</h2><p>' + format(fields["题干"]) + '</p><div class="source"><strong>题源</strong><ul>' +
-    citations(id).map(source => "<li>" + escape(source) + "</li>").join("") +
-    '</ul></div><div class="actions section">' + button("lesson/" + section, "补基础 · " + section + " " + lessonMap.get(section).title) +
+    '<div class="reader"><section class="card"><h2>原题</h2><div class="original-question">' + original +
+    '</div><div class="source"><strong>题源</strong><ul>' +
+    citations(item).map(source => "<li>" + escape(source) + "</li>").join("") +
+    "</ul></div>" + sourceNote + '<div class="actions section">' + button("lesson/" + section, "补基础 · " + section + " " + lessonMap.get(section).title) +
     '</div></section><section class="card practice"><h2>先自己做</h2><div class="notes"><label for="notes">作答草稿</label>' +
     '<textarea id="notes" placeholder="写下已知条件、打算用的公式，或卡住的那一步。">' + escape(entry.note) +
     '</textarea><p class="source" id="save-status" aria-live="polite">' + (storageAvailable ? "草稿保存在当前浏览器。" : "浏览器存储不可用。") +
@@ -270,7 +255,7 @@ function bindBank() {
     const items = questions.filter(item =>
       (!filters.chapter || item.section[0] === filters.chapter) &&
       (!filters.source || item.source === filters.source) &&
-      (!query || [item.title, item.source, item.section, item.fields["题干"], ...citations(item.id)]
+      (!query || [item.title, item.source, item.section, item.fields["题干"], ...citations(item)]
         .some(value => value.toLowerCase().includes(query)))
     );
     document.querySelector("#bank-count").textContent = "找到 " + items.length + " 道题";
